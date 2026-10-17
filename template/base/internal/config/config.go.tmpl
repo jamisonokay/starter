@@ -1,0 +1,41 @@
+package config
+
+import (
+	"os"
+
+	"github.com/joho/godotenv"
+)
+
+// Config describes the configuration of the application.
+type Config struct {
+	Port       string
+	Production bool
+{{- if .Postgres}}
+	DatabaseURL string
+{{- end}}
+{{- if .Redis}}
+	RedisURL string
+{{- end}}
+}
+
+func Load() Config {
+	_ = godotenv.Load() // .env is optional
+
+	return Config{
+		Port:       env("PORT", "3000"),
+		Production: os.Getenv("APP_ENV") == "production",
+{{- if .Postgres}}
+		DatabaseURL: env("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/{{.DBName}}?sslmode=disable"),
+{{- end}}
+{{- if .Redis}}
+		RedisURL: env("REDIS_URL", "redis://localhost:6379/0"),
+{{- end}}
+	}
+}
+
+func env(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
+}

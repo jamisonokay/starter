@@ -1,0 +1,14 @@
+.env
+data/
+tmp/
+bin/
+{{- if .Tailwind}}
+static/css/app.css
+{{- end}}
+{{- if .Shadcn}}
+static/js/shadcn-templ-*.js
+{{- end}}
+{{- if .React}}
+frontend/node_modules/
+static/react/
+{{- end}}

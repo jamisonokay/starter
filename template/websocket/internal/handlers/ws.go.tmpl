@@ -1,0 +1,49 @@
+package handlers
+
+import (
+	"log"
+
+	"github.com/gofiber/contrib/v3/websocket"
+	"github.com/gofiber/fiber/v3"
+)
+
+// registerWS mounts GET /ws (WebSocket upgrade).
+func (h *Handlers) registerWS(app *fiber.App) {
+	app.Use("/ws", func(c fiber.Ctx) error {
+		// Plain HTTP requests to /ws get 426 Upgrade Required.
+		if websocket.IsWebSocketUpgrade(c) {
+			return c.Next()
+		}
+		return fiber.ErrUpgradeRequired
+	})
+	app.Get("/ws", websocket.New(h.serveWS))
+}
+
+// serveWS is a chat-style broadcast: whatever a client sends reaches everybody.
+func (h *Handlers) serveWS(conn *websocket.Conn) {
+	client := h.deps.Hub.Join()
+	defer h.deps.Hub.Leave(client)
+
+	// A websocket connection allows only one concurrent writer, so all writes
+	// go through this goroutine.
+	go func() {
+		for msg := range client.Messages() {
+			if err := conn.WriteMessage(websocket.TextMessage, msg); err != nil {
+				return
+			}
+		}
+	}()
+
+	for {
+		mt, msg, err := conn.ReadMessage()
+		if err != nil {
+			if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
+				log.Printf("ws read: %v", err)
+			}
+			return
+		}
+		if mt == websocket.TextMessage {
+			h.deps.Hub.Broadcast(msg)
+		}
+	}
+}

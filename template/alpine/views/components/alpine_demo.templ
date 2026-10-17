@@ -1,0 +1,13 @@
+package components
+
+// AlpineDemo shows client-side state without writing any JavaScript files.
+templ AlpineDemo() {
+	<article class="panel" x-data="{ count: 0 }">
+		<h2>Alpine.js</h2>
+		<p>State lives in the markup: <code>x-data</code>, <code>x-on:click</code>, <code>x-text</code>.</p>
+		<div class="row">
+			<button class="btn" type="button" x-on:click="count++">Increment</button>
+			<output class="out" x-text="'count = ' + count">count = 0</output>
+		</div>
+	</article>
+}

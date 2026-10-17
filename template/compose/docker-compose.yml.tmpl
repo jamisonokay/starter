@@ -1,0 +1,43 @@
+services:
+{{- if .Postgres}}
+  postgres:
+    image: postgres:17-alpine
+    container_name: {{.Name}}-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: {{.DBName}}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d {{.DBName}}"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+{{- end}}
+{{- if .Redis}}
+  redis:
+    image: redis:7-alpine
+    container_name: {{.Name}}-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+{{- end}}
+
+volumes:
+{{- if .Postgres}}
+  postgres_data:
+{{- end}}
+{{- if .Redis}}
+  redis_data:
+{{- end}}

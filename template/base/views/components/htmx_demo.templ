@@ -1,0 +1,22 @@
+package components
+
+import "time"
+
+// Pong is the fragment returned by GET /ping.
+templ Pong(t time.Time) {
+	<span>pong · { t.Format("15:04:05") }</span>
+}
+
+// HtmxDemo swaps an HTML fragment rendered by Go into the page.
+templ HtmxDemo() {
+	<article class="panel">
+		<h2>htmx</h2>
+		<p>Click to swap a fragment rendered by Go (<code>GET /ping</code>).</p>
+		<div class="row">
+			<button class="btn" type="button" hx-get="/ping" hx-target="#ping-out" hx-swap="innerHTML">
+				Ping the server
+			</button>
+			<output id="ping-out" class="out">…</output>
+		</div>
+	</article>
+}

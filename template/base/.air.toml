@@ -1,0 +1,12 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+    cmd = "templ generate --notify-proxy"
+    entrypoint = ["true"]
+    include_dir = ["static"]
+    include_ext = ["css", "js"]
+    exclude_dir = []
+    delay = 100
+    stop_on_error = false
+

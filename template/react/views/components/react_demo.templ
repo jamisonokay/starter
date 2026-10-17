@@ -1,0 +1,12 @@
+package components
+
+// ReactDemo mounts a React "island". The bundle in static/react/app.js finds
+// every element with data-react="<Name>" and renders that component into it;
+// data-props is passed as JSON props.
+templ ReactDemo() {
+	<article class="panel">
+		<h2>React</h2>
+		<p>A TypeScript component built by Vite (<code>frontend/</code>) that calls <code>GET /api/hello</code>.</p>
+		<div data-react="Counter" data-props='{"title":"React island"}'></div>
+	</article>
+}

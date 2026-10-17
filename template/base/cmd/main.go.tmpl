@@ -1,0 +1,92 @@
+package main
+
+import (
+	"context"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"{{.Module}}/internal/config"
+{{- if .Redis}}
+	"{{.Module}}/internal/cache"
+{{- end}}
+{{- if .Postgres}}
+	"{{.Module}}/internal/db"
+{{- end}}
+	"{{.Module}}/internal/handlers"
+{{- if .WebSocket}}
+	"{{.Module}}/internal/ws"
+{{- end}}
+
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/static"
+)
+
+func main() {
+	cfg := config.Load()
+
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+{{- if .Postgres}}
+
+	pool, err := db.Connect(ctx, cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("postgres: %v", err)
+	}
+	defer pool.Close()
+{{- end}}
+{{- if .Redis}}
+
+	rdb, err := cache.Connect(ctx, cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("redis: %v", err)
+	}
+	defer rdb.Close()
+{{- end}}
+
+	app := fiber.New()
+
+	app.Use(recover.New())
+	app.Use(compress.New())
+	app.Use(logger.New())
+
+	staticMaxAge := 0
+	if cfg.Production {
+		staticMaxAge = 3600
+	}
+	app.Use("/static", static.New("./static", static.Config{MaxAge: staticMaxAge}))
+
+	h := handlers.New(handlers.Deps{
+{{- if .Postgres}}
+		DB: pool,
+{{- end}}
+{{- if .Redis}}
+		Redis: rdb,
+{{- end}}
+{{- if .WebSocket}}
+		Hub: ws.NewHub(),
+{{- end}}
+	})
+	h.Register(app)
+
+	go func() {
+		if err := app.Listen(":" + cfg.Port); err != nil {
+			log.Printf("server: %v", err)
+			stop()
+		}
+	}()
+
+	<-ctx.Done()
+	log.Println("shutting down...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := app.ShutdownWithContext(shutdownCtx); err != nil {
+		log.Printf("shutdown: %v", err)
+	}
+}

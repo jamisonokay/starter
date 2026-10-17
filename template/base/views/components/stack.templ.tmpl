@@ -1,0 +1,31 @@
+package components
+
+// Stack lists what this project was generated with.
+templ Stack() {
+	<ul class="badges" aria-label="Enabled stack">
+		<li class="badge">Fiber v3</li>
+		<li class="badge">templ</li>
+		<li class="badge">htmx</li>
+{{- if .Postgres}}
+		<li class="badge">PostgreSQL</li>
+{{- end}}
+{{- if .Redis}}
+		<li class="badge">Redis</li>
+{{- end}}
+{{- if .WebSocket}}
+		<li class="badge">WebSocket</li>
+{{- end}}
+{{- if .Tailwind}}
+		<li class="badge">Tailwind CSS</li>
+{{- end}}
+{{- if .Alpine}}
+		<li class="badge">Alpine.js</li>
+{{- end}}
+{{- if .Shadcn}}
+		<li class="badge">shadcn/ui</li>
+{{- end}}
+{{- if .React}}
+		<li class="badge">React + Vite + TS</li>
+{{- end}}
+	</ul>
+}

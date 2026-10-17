@@ -1,0 +1,132 @@
+.PHONY: setup htmx generate build run dev dev-templ dev-air{{if .Alpine}} alpine{{end}}{{if .Tailwind}} css dev-css{{end}}{{if .Shadcn}} ui-init ui-add ui-bundle dev-ui{{end}}{{if .React}} react-install react-build react-dev{{end}}{{if .Compose}} db-up db-down db-logs db-reset{{end}}
+
+APP      := {{.Name}}
+{{- if .Tailwind}}
+TAILWIND ?= ./bin/tailwindcss
+{{- end}}
+{{- if .Shadcn}}
+SHADCN   ?= shadcn-templ
+{{- end}}
+{{- if .Alpine}}
+ALPINE_URL ?= https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js
+{{- end}}
+
+# First-time setup: tools, front-end assets and dependencies
+setup: htmx{{if .Alpine}} alpine{{end}}{{if .Tailwind}} $(TAILWIND){{end}}{{if .React}} react-install{{end}}
+	go install github.com/a-h/templ/cmd/templ@latest
+	go install github.com/air-verse/air@latest
+{{- if .Shadcn}}
+	go install github.com/axadrn/shadcn-templ/v2/cmd/shadcn-templ@latest
+	@test -f views/ui/button/button.templ || $(MAKE) ui-init
+	$(SHADCN) bundle
+{{- end}}
+	templ generate
+	go mod tidy
+{{- if .Tailwind}}
+	$(MAKE) css
+{{- end}}
+{{- if .React}}
+	$(MAKE) react-build
+{{- end}}
+
+# Re-download htmx (it is committed in static/js, this is only for upgrades)
+htmx:
+	curl -sSL -o static/js/htmx.min.js https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js
+{{- if .Alpine}}
+
+# Download Alpine.js into static/js/alpine.min.js
+alpine:
+	@mkdir -p static/js
+	curl -fsSL -o static/js/alpine.min.js $(ALPINE_URL)
+{{- end}}
+
+generate:
+	templ generate
+
+build: {{if .Shadcn}}ui-bundle {{end}}generate{{if .Tailwind}} css{{end}}{{if .React}} react-build{{end}}
+	CGO_ENABLED=0 go build -o bin/server ./cmd
+
+run: build
+	./bin/server
+
+# Dev: templ watch (proxy + app restart) plus every watcher this project needs
+dev:{{if .Compose}} db-up{{end}}
+	$(MAKE) -j dev-templ{{if .Tailwind}} dev-css{{end}}{{if .Shadcn}} dev-ui{{end}}{{if .React}} react-dev{{end}}
+
+dev-templ:
+	templ fmt ./views
+	templ generate --watch \
+		--proxy="http://localhost:3000" --open-browser=false \
+		--proxyport=5173 \
+		--proxybind="localhost" \
+		--cmd="sh scripts/dev-run.sh"
+
+dev-air:
+	air -c .air.toml
+{{- if .Tailwind}}
+
+css: $(TAILWIND)
+	$(TAILWIND) -i web/input.css -o static/css/app.css --minify
+
+# --watch=always: without it tailwind v4 exits as soon as stdin is closed
+dev-css: $(TAILWIND)
+	$(TAILWIND) -i web/input.css -o static/css/app.css --watch=always
+
+# Standalone Tailwind CLI for the current OS/arch, downloaded into ./bin
+bin/tailwindcss:
+	@mkdir -p bin
+	@os=$$(uname -s | tr A-Z a-z); arch=$$(uname -m); \
+	case $$os in darwin) os=macos;; esac; \
+	case $$arch in x86_64|amd64) arch=x64;; aarch64|arm64) arch=arm64;; esac; \
+	url=https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-$$os-$$arch; \
+	echo "downloading $$url"; \
+	curl -fsSL -o $@ $$url && chmod +x $@
+{{- end}}
+{{- if .Shadcn}}
+
+# shadcn/ui for templ. Components are written to views/ui (see components.json).
+ui-init:
+	$(SHADCN) init --force --css web/input.css
+	$(SHADCN) add button card
+
+# Add more components:  make ui-add c="dialog tabs"
+ui-add:
+	$(SHADCN) add $(c)
+
+# Rebuild the JS bundle of the installed components
+ui-bundle:
+	$(SHADCN) bundle
+
+dev-ui:
+	$(SHADCN) bundle --watch
+{{- end}}
+{{- if .React}}
+
+# React + TypeScript + Vite (frontend/ -> static/react/app.js)
+react-install:
+	cd frontend && npm install
+
+react-build:
+	cd frontend && npm run build
+
+# Rebuilds static/react/app.js on every change (reload the page to see it)
+react-dev:
+	cd frontend && npm run dev
+{{- end}}
+{{- if .Compose}}
+
+# Postgres / Redis in Docker (see docker-compose.yml)
+db-up:
+	docker compose up -d --wait
+
+db-down:
+	docker compose down
+
+db-logs:
+	docker compose logs -f
+
+# WARNING: removes volumes, all local data is lost
+db-reset:
+	docker compose down -v
+	docker compose up -d --wait
+{{- end}}

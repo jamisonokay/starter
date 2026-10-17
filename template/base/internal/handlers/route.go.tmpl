@@ -1,0 +1,17 @@
+package handlers
+
+import (
+	"github.com/gofiber/fiber/v3"
+)
+
+// Register mounts every route of the application.
+func (h *Handlers) Register(app *fiber.App) {
+	app.Get("/", h.HomePage)
+	app.Get("/ping", h.Ping)
+{{- if .WebSocket}}
+	h.registerWS(app)
+{{- end}}
+{{- if .React}}
+	h.registerAPI(app)
+{{- end}}
+}

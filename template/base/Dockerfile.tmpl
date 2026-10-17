@@ -1,0 +1,43 @@
+{{- if .React}}
+FROM node:22-alpine AS frontend
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+# vite writes to ../static/react
+RUN npm run build
+
+{{end -}}
+FROM golang:{{.GoVersion}} AS build
+WORKDIR /src
+{{- if .Tailwind}}
+# Standalone Tailwind CLI matching the build architecture
+RUN arch=$(uname -m); case "$arch" in x86_64) a=x64;; aarch64) a=arm64;; esac; \
+    curl -fsSL -o /usr/local/bin/tailwindcss \
+      "https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-$a" \
+ && chmod +x /usr/local/bin/tailwindcss
+{{- end}}
+COPY go.mod go.sum ./
+RUN go mod download
+# Same templ version as the library in go.mod
+RUN go install github.com/a-h/templ/cmd/templ@$(go list -m github.com/a-h/templ | cut -d' ' -f2)
+{{- if .Shadcn}}
+RUN go install github.com/axadrn/shadcn-templ/v2/cmd/shadcn-templ@latest
+{{- end}}
+COPY . .
+{{- if .React}}
+COPY --from=frontend /app/static/react ./static/react
+{{- end}}
+RUN {{if .Shadcn}}shadcn-templ bundle \
+ && {{end}}templ generate \
+{{- if .Tailwind}}
+ && tailwindcss -i web/input.css -o static/css/app.css --minify \
+{{- end}}
+ && CGO_ENABLED=0 go build -o /out/server ./cmd
+
+FROM gcr.io/distroless/static-debian12
+WORKDIR /app
+COPY --from=build /out/server .
+COPY --from=build /src/static ./static
+EXPOSE 3000
+CMD ["/app/server"]

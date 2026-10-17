@@ -1,0 +1,44 @@
+package handlers
+
+import (
+{{- if .WebSocket}}
+	"{{.Module}}/internal/ws"
+
+{{- end}}
+	"github.com/a-h/templ"
+	"github.com/gofiber/fiber/v3"
+{{- if .Postgres}}
+	"github.com/jackc/pgx/v5/pgxpool"
+{{- end}}
+{{- if .Redis}}
+	"github.com/redis/go-redis/v9"
+{{- end}}
+)
+
+// Deps are the shared dependencies available to every handler.
+type Deps struct {
+{{- if .Postgres}}
+	DB *pgxpool.Pool
+{{- end}}
+{{- if .Redis}}
+	Redis *redis.Client
+{{- end}}
+{{- if .WebSocket}}
+	Hub *ws.Hub
+{{- end}}
+}
+
+// Handlers is the place to hang your own handlers on.
+type Handlers struct {
+	deps Deps
+}
+
+func New(deps Deps) *Handlers {
+	return &Handlers{deps: deps}
+}
+
+// render writes a templ component as an HTML response.
+func render(c fiber.Ctx, comp templ.Component) error {
+	c.Set(fiber.HeaderContentType, fiber.MIMETextHTMLCharsetUTF8)
+	return comp.Render(c.Context(), c.Response().BodyWriter())
+}

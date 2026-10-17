@@ -1,0 +1,31 @@
+package pages
+
+import (
+	"{{.Module}}/views/components"
+	"{{.Module}}/views/layouts"
+)
+
+// Home is the landing page. Every feature you enabled has a small demo card.
+templ Home() {
+	@layouts.Base("Home") {
+		<main class="app">
+			@components.Hero()
+			@components.Stack()
+			<section class="grid">
+				@components.HtmxDemo()
+{{- if .Alpine}}
+				@components.AlpineDemo()
+{{- end}}
+{{- if .WebSocket}}
+				@components.WebSocketDemo()
+{{- end}}
+{{- if .React}}
+				@components.ReactDemo()
+{{- end}}
+{{- if .Shadcn}}
+				@components.ShadcnDemo()
+{{- end}}
+			</section>
+		</main>
+	}
+}

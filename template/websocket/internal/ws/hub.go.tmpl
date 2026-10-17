@@ -1,0 +1,61 @@
+// Package ws holds a tiny in-memory broadcast hub for WebSocket clients.
+package ws
+
+import "sync"
+
+// Hub fans every message out to all connected clients.
+type Hub struct {
+	mu      sync.RWMutex
+	clients map[*Client]struct{}
+}
+
+// Client receives broadcast messages on its own buffered channel, so a slow
+// browser can never block the others.
+type Client struct {
+	send chan []byte
+}
+
+func NewHub() *Hub {
+	return &Hub{clients: make(map[*Client]struct{})}
+}
+
+// Join registers a new client.
+func (h *Hub) Join() *Client {
+	c := &Client{send: make(chan []byte, 16)}
+	h.mu.Lock()
+	h.clients[c] = struct{}{}
+	h.mu.Unlock()
+	return c
+}
+
+// Leave unregisters the client and closes its channel.
+func (h *Hub) Leave(c *Client) {
+	h.mu.Lock()
+	if _, ok := h.clients[c]; ok {
+		delete(h.clients, c)
+		close(c.send)
+	}
+	h.mu.Unlock()
+}
+
+// Broadcast sends msg to everyone. Clients whose buffer is full miss it.
+func (h *Hub) Broadcast(msg []byte) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	for c := range h.clients {
+		select {
+		case c.send <- msg:
+		default:
+		}
+	}
+}
+
+// Len returns the number of connected clients.
+func (h *Hub) Len() int {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	return len(h.clients)
+}
+
+// Messages is the stream of messages for this client.
+func (c *Client) Messages() <-chan []byte { return c.send }

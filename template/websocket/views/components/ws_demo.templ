@@ -1,0 +1,15 @@
+package components
+
+// WebSocketDemo is a tiny broadcast chat. Open the page in two tabs.
+templ WebSocketDemo() {
+	<article class="panel" data-ws-demo>
+		<h2>WebSocket</h2>
+		<p>Fiber WebSocket on <code>/ws</code>: <span class="out" data-ws-status>connecting…</span></p>
+		<ul class="log" data-ws-log></ul>
+		<form class="row">
+			<input class="field" type="text" placeholder="Say something" autocomplete="off"/>
+			<button class="btn" type="submit">Send</button>
+		</form>
+		<script src="/static/js/ws-demo.js" defer></script>
+	</article>
+}

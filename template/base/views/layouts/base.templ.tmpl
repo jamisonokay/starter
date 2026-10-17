@@ -1,0 +1,34 @@
+package layouts
+{{- if .Shadcn}}
+
+import "{{.Module}}/views/ui"
+{{- end}}
+
+// Base is the HTML shell shared by every page.
+templ Base(title string) {
+	<!DOCTYPE html>
+	<html lang="en" class="h-full{{if .Tailwind}} dark{{end}}">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="color-scheme" content="dark"/>
+			<title>{ title } · {{.Name}}</title>
+			<link href="/static/css/app.css" rel="stylesheet"/>
+			<link href="/static/assets/favicon.ico" rel="icon"/>
+			<link href="/static/assets/site.webmanifest" rel="manifest"/>
+			<script src="/static/js/htmx.min.js" defer></script>
+{{- if .Alpine}}
+			<script src="/static/js/alpine.min.js" defer></script>
+{{- end}}
+{{- if .Shadcn}}
+			@ui.Scripts()
+{{- end}}
+{{- if .React}}
+			<script type="module" src="/static/react/app.js"></script>
+{{- end}}
+		</head>
+		<body class="{{if .Tailwind}}min-h-dvh bg-background text-foreground antialiased{{else}}page{{end}}">
+			{ children... }
+		</body>
+	</html>
+}

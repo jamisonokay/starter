@@ -1,0 +1,21 @@
+package handlers
+
+import (
+	"time"
+
+	"github.com/gofiber/fiber/v3"
+)
+
+// registerAPI mounts the JSON endpoints used by the React app in ./frontend.
+func (h *Handlers) registerAPI(app *fiber.App) {
+	api := app.Group("/api")
+	api.Get("/hello", h.apiHello)
+}
+
+// apiHello answers GET /api/hello. The React side calls it from frontend/src/api.ts.
+func (h *Handlers) apiHello(c fiber.Ctx) error {
+	return c.JSON(fiber.Map{
+		"message": "Hello from Go + Fiber",
+		"time":    time.Now().Format(time.RFC3339),
+	})
+}

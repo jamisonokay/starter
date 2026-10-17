@@ -1,0 +1,21 @@
+package handlers
+
+import (
+	"time"
+
+	"{{.Module}}/views/components"
+	"{{.Module}}/views/pages"
+
+	"github.com/gofiber/fiber/v3"
+)
+
+// HomePage renders the full page.
+func (h *Handlers) HomePage(c fiber.Ctx) error {
+	return render(c, pages.Home())
+}
+
+// Ping is the target of the htmx demo on the home page: it answers with an
+// HTML fragment, not a full page.
+func (h *Handlers) Ping(c fiber.Ctx) error {
+	return render(c, components.Pong(time.Now()))
+}
